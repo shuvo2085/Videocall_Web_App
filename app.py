@@ -10,21 +10,33 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "videocall_secret_key_change_in_prod")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-# MongoDB connection
+# MongoDB connection — lazy init to avoid startup timeout
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://shuvo1994:875965@cluster0.l71jpfi.mongodb.net/videocall_app")
-client = MongoClient(MONGO_URI)
-db = client["videocall_app"]
-users_col = db["users"]
-rooms_col = db["rooms"]
-calls_col = db["call_history"]
 
-# Track active users in rooms: room_id -> list of socket_ids
+_client = None
+
+def get_db():
+    global _client
+    if _client is None:
+        _client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    return _client["videocall_app"]
+
+def get_users():
+    return get_db()["users"]
+
+def get_rooms():
+    return get_db()["rooms"]
+
+def get_calls():
+    return get_db()["call_history"]
+
+# Track active users in rooms
 room_participants = {}
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# ─── AUTH ROUTES ────────────────────────────────────────────────────────────
+# ─── AUTH ROUTES ─────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -38,7 +50,7 @@ def login():
         data = request.get_json()
         username = data.get("username", "").strip()
         password = data.get("password", "")
-        user = users_col.find_one({"username": username, "password": hash_password(password)})
+        user = get_users().find_one({"username": username, "password": hash_password(password)})
         if user:
             session["user_id"] = str(user["_id"])
             session["username"] = user["username"]
@@ -54,9 +66,9 @@ def register():
         password = data.get("password", "")
         if not username or not password:
             return jsonify({"success": False, "message": "All fields required"})
-        if users_col.find_one({"username": username}):
+        if get_users().find_one({"username": username}):
             return jsonify({"success": False, "message": "Username already taken"})
-        users_col.insert_one({
+        get_users().insert_one({
             "username": username,
             "password": hash_password(password),
             "created_at": datetime.utcnow(),
@@ -74,7 +86,7 @@ def logout():
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    history = list(calls_col.find(
+    history = list(get_calls().find(
         {"participants": session["username"]},
         {"_id": 0}
     ).sort("started_at", -1).limit(10))
@@ -84,9 +96,9 @@ def dashboard():
 def room(room_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
-    room_data = rooms_col.find_one({"room_id": room_id})
+    room_data = get_rooms().find_one({"room_id": room_id})
     if not room_data:
-        rooms_col.insert_one({
+        get_rooms().insert_one({
             "room_id": room_id,
             "created_by": session["username"],
             "created_at": datetime.utcnow()
@@ -105,7 +117,11 @@ def room_info(room_id):
     participants = room_participants.get(room_id, [])
     return jsonify({"room_id": room_id, "participant_count": len(participants)})
 
-# ─── WEBSOCKET SIGNALING ─────────────────────────────────────────────────────
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"})
+
+# ─── WEBSOCKET SIGNALING ──────────────────────────────────────────────────────
 
 @socketio.on("join")
 def on_join(data):
@@ -121,26 +137,23 @@ def on_join(data):
         "username": username
     })
 
-    # Tell existing users about new peer
     emit("user_joined", {
         "socket_id": request.sid,
         "username": username
     }, to=room_id, include_self=False)
 
-    # Tell the new user about existing peers
     existing = [p for p in room_participants[room_id] if p["socket_id"] != request.sid]
     emit("existing_peers", {"peers": existing})
 
-    # Log call start if first person
     if len(room_participants[room_id]) == 1:
-        calls_col.insert_one({
+        get_calls().insert_one({
             "room_id": room_id,
             "participants": [username],
             "started_at": datetime.utcnow(),
             "ended_at": None
         })
     else:
-        calls_col.update_one(
+        get_calls().update_one(
             {"room_id": room_id, "ended_at": None},
             {"$addToSet": {"participants": username}}
         )
@@ -179,7 +192,7 @@ def on_leave(data):
         ]
         if not room_participants[room_id]:
             del room_participants[room_id]
-            calls_col.update_one(
+            get_calls().update_one(
                 {"room_id": room_id, "ended_at": None},
                 {"$set": {"ended_at": datetime.utcnow()}}
             )
@@ -195,7 +208,7 @@ def on_disconnect():
                 emit("user_left", {"socket_id": request.sid, "username": p["username"]}, to=room_id)
                 if not room_participants[room_id]:
                     del room_participants[room_id]
-                    calls_col.update_one(
+                    get_calls().update_one(
                         {"room_id": room_id, "ended_at": None},
                         {"$set": {"ended_at": datetime.utcnow()}}
                     )
