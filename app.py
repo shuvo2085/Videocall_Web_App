@@ -8,7 +8,7 @@ import os
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "videocall_secret_key_change_in_prod")
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="gevent")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # MongoDB connection
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://shuvo1994:875965@cluster0.l71jpfi.mongodb.net/videocall_app")
