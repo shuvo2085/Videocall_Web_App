@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexCall — Room {{ room_id }}</title>
+  <link rel="stylesheet" href="/static/css/room.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="room-wrapper">
+
+    <!-- Top Bar -->
+    <header class="room-header">
+      <div class="brand-small">
+        <span class="brand-icon">⬡</span> NexCall
+      </div>
+      <div class="room-info">
+        <span class="room-badge">Room: <strong>{{ room_id }}</strong></span>
+        <button class="btn-copy" onclick="copyRoomId()" title="Copy room code">⎘ Copy</button>
+      </div>
+      <div id="conn-status" class="conn-status connecting">● Connecting</div>
+    </header>
+
+    <!-- Main Area -->
+    <div class="room-body">
+
+      <!-- Video Grid -->
+      <div class="video-area">
+        <div id="video-grid" class="video-grid">
+          <!-- Local video -->
+          <div class="video-tile local-tile" id="local-tile">
+            <video id="local-video" autoplay muted playsinline></video>
+            <div class="video-label">You ({{ username }})</div>
+            <div class="video-overlay" id="local-overlay" style="display:none">
+              <div class="avatar-circle" id="local-avatar">{{ username[0]|upper }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon">◎</div>
+          <p>Waiting for others to join…</p>
+          <p class="empty-code">Share code <strong>{{ room_id }}</strong></p>
+        </div>
+      </div>
+
+      <!-- Chat Sidebar -->
+      <div class="chat-sidebar" id="chat-sidebar">
+        <div class="chat-header">
+          <span>Chat</span>
+          <button onclick="toggleChat()" class="btn-close-chat">✕</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Message…" maxlength="200"/>
+          <button onclick="sendChat()">↑</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <footer class="controls-bar">
+      <button class="ctrl-btn" id="btn-mic" onclick="toggleMic()" title="Mute/Unmute">
+        <span id="mic-icon">🎙</span>
+        <span class="ctrl-label">Mute</span>
+      </button>
+      <button class="ctrl-btn" id="btn-cam" onclick="toggleCam()" title="Camera on/off">
+        <span id="cam-icon">📷</span>
+        <span class="ctrl-label">Camera</span>
+      </button>
+      <button class="ctrl-btn" id="btn-screen" onclick="toggleScreen()" title="Share screen">
+        <span>🖥</span>
+        <span class="ctrl-label">Screen</span>
+      </button>
+      <button class="ctrl-btn" id="btn-chat" onclick="toggleChat()" title="Toggle chat">
+        <span>💬</span>
+        <span class="ctrl-label" id="chat-label">Chat</span>
+      </button>
+      <button class="ctrl-btn ctrl-end" onclick="leaveRoom()" title="Leave call">
+        <span>✕</span>
+        <span class="ctrl-label">Leave</span>
+      </button>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const ROOM_ID = "{{ room_id }}";
+    const USERNAME = "{{ username }}";
+  </script>
+  <script src="/static/js/room.js"></script>
+</body>
+</html>

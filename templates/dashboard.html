@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexCall — Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <div class="bg-noise"></div>
+
+  <nav class="navbar">
+    <div class="brand">
+      <span class="brand-icon">⬡</span>
+      <span class="brand-name">NexCall</span>
+    </div>
+    <div class="nav-right">
+      <span class="user-chip">{{ username }}</span>
+      <a href="/logout" class="btn-logout">Logout</a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="hero-section">
+      <h1>Hello, <span class="highlight">{{ username }}</span></h1>
+      <p class="hero-sub">Start a new call or join an existing room</p>
+    </div>
+
+    <div class="action-cards">
+      <div class="card card-create">
+        <div class="card-icon">✦</div>
+        <h2>New Meeting</h2>
+        <p>Create a room and invite others with the room code</p>
+        <a href="/create_room" class="btn-action">Start Now</a>
+      </div>
+
+      <div class="card card-join">
+        <div class="card-icon">↗</div>
+        <h2>Join a Room</h2>
+        <p>Enter a room code to join an ongoing meeting</p>
+        <div class="join-input-row">
+          <input type="text" id="room-code" placeholder="Enter Room Code" maxlength="8"/>
+          <button onclick="joinRoom()" class="btn-action">Join</button>
+        </div>
+        <div id="join-error" class="join-error" style="display:none">Please enter a room code</div>
+      </div>
+    </div>
+
+    {% if history %}
+    <div class="history-section">
+      <h3>Recent Calls</h3>
+      <div class="history-list">
+        {% for call in history %}
+        <div class="history-item">
+          <div class="history-icon">☎</div>
+          <div class="history-details">
+            <span class="history-room">Room: {{ call.room_id }}</span>
+            <span class="history-time">{{ call.started_at.strftime('%b %d, %Y · %H:%M') if call.started_at else 'N/A' }}</span>
+          </div>
+          <div class="history-participants">
+            {% for p in call.participants[:3] %}
+            <span class="participant-tag">{{ p }}</span>
+            {% endfor %}
+          </div>
+          <a href="/room/{{ call.room_id }}" class="btn-rejoin">Rejoin</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </main>
+
+  <script>
+    function joinRoom() {
+      const code = document.getElementById('room-code').value.trim().toUpperCase();
+      if (!code) {
+        document.getElementById('join-error').style.display = 'block';
+        return;
+      }
+      window.location.href = '/room/' + code;
+    }
+    document.getElementById('room-code').addEventListener('keydown', e => {
+      if(e.key === 'Enter') joinRoom();
+    });
+  </script>
+</body>
+</html>

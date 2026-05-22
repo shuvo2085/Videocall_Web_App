@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexCall — Login</title>
+  <link rel="stylesheet" href="/static/css/auth.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="auth-container">
+    <div class="brand">
+      <span class="brand-icon">⬡</span>
+      <span class="brand-name">NexCall</span>
+    </div>
+    <h1>Welcome back</h1>
+    <p class="subtitle">Sign in to join or start a call</p>
+
+    <div id="error-msg" class="error-msg" style="display:none"></div>
+
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="your_username" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign In</button>
+    <p class="switch-link">No account? <a href="/register">Create one</a></p>
+  </div>
+
+  <script>
+    async function doLogin() {
+      const btn = document.getElementById('login-btn');
+      const err = document.getElementById('error-msg');
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) { showErr('Please fill all fields.'); return; }
+      btn.textContent = 'Signing in…'; btn.disabled = true;
+      const res = await fetch('/login', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      const data = await res.json();
+      if (data.success) { window.location.href = '/dashboard'; }
+      else { showErr(data.message); btn.textContent = 'Sign In'; btn.disabled = false; }
+    }
+    function showErr(msg) {
+      const e = document.getElementById('error-msg');
+      e.textContent = msg; e.style.display = 'block';
+    }
+    document.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  </script>
+</body>
+</html>

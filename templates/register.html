@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexCall — Register</title>
+  <link rel="stylesheet" href="/static/css/auth.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="auth-container">
+    <div class="brand">
+      <span class="brand-icon">⬡</span>
+      <span class="brand-name">NexCall</span>
+    </div>
+    <h1>Create account</h1>
+    <p class="subtitle">Join NexCall and start calling</p>
+
+    <div id="error-msg" class="error-msg" style="display:none"></div>
+    <div id="success-msg" class="success-msg" style="display:none"></div>
+
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="choose_a_username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="min 6 characters"/>
+    </div>
+    <button class="btn-primary" id="reg-btn" onclick="doRegister()">Create Account</button>
+    <p class="switch-link">Already have an account? <a href="/login">Sign in</a></p>
+  </div>
+
+  <script>
+    async function doRegister() {
+      const btn = document.getElementById('reg-btn');
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) { showErr('Please fill all fields.'); return; }
+      if (password.length < 6) { showErr('Password must be at least 6 characters.'); return; }
+      btn.textContent = 'Creating…'; btn.disabled = true;
+      const res = await fetch('/register', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('success-msg').textContent = 'Account created! Redirecting…';
+        document.getElementById('success-msg').style.display = 'block';
+        setTimeout(() => window.location.href = '/login', 1200);
+      } else {
+        showErr(data.message); btn.textContent = 'Create Account'; btn.disabled = false;
+      }
+    }
+    function showErr(msg) {
+      const e = document.getElementById('error-msg');
+      e.textContent = msg; e.style.display = 'block';
+    }
+    document.addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+  </script>
+</body>
+</html>
