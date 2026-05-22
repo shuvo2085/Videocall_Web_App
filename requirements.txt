@@ -1,6 +1,6 @@
 flask==3.0.3
 flask-socketio==5.3.6
 pymongo==4.7.3
-python-engineio==4.9.1
 python-socketio==5.11.2
-eventlet==0.36.1
+python-engineio==4.9.1
+dnspython==2.6.1
